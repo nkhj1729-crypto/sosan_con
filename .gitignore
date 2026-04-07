@@ -1,0 +1,11 @@
+node_modules/
+output/
+uploads/
+tmp_ocr/
+sample_*.pdf
+업체정보_*.pdf
+상권분석리포트_*.pdf
+컨설팅_결과보고서_*.pdf
+*.log
+.DS_Store
+Thumbs.db

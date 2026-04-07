@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Read(//c/Users/DAEDONGCMC_10/AppData/Local/Programs/**)",
+      "Bash(ls /c/Python*/python.exe)",
+      "Bash(where python:*)",
+      "Bash(echo $PATH)",
+      "Bash(python -m pip install python-pptx)",
+      "Bash(python -c \"import pptx; print\\(''ok''\\)\")",
+      "Bash(python3 -m pip --version)",
+      "Bash(cmd.exe /c \"python --version\")",
+      "Bash(cmd.exe /c \"python --version 2>&1 && pip --version 2>&1\")",
+      "Bash(npm --version)",
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(cp \"5. 250326 컨설팅 보고서 양식\\(업종컨설팅\\).pptx\" templates/업종컨설팅.pptx)",
+      "Bash(cp \"6. 250326 컨설팅 보고서 양식\\(사업성분석\\).pptx\" templates/사업성분석.pptx)",
+      "Bash(cp \"7. 250326 컨설팅 보고서 양식\\(홍보마케팅\\).pptx\" templates/홍보마케팅.pptx)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(node -e \":*)",
+      "Bash(node -e \"const j=require\\(''''fs''''\\).readFileSync\\(''''/dev/stdin'''',''''utf8''''\\);const p=JSON.parse\\(j\\);console.log\\(''''exports:'''', JSON.stringify\\(p.exports,null,2\\).substring\\(0,500\\)\\)\")",
+      "Bash(node --input-type=module -e \":*)",
+      "Bash(tesseract --version)",
+      "Bash(npm list:*)",
+      "Bash(where magick:*)",
+      "Bash(where convert:*)",
+      "Bash(mkdir -p \"/c/Users/DAEDONGCMC_10/Desktop/소상공인 컨설팅_자동화/tmp_ocr\")"
+    ]
+  }
+}

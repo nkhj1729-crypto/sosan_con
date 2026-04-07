@@ -1,0 +1,15 @@
+{
+  "dependencies": {
+    "canvas": "^3.2.3",
+    "docxtemplater": "^3.68.3",
+    "express": "^5.2.1",
+    "multer": "^2.1.1",
+    "pdf-parse": "^2.4.5",
+    "pdf2json": "^4.0.2",
+    "pdf2pic": "^3.2.0",
+    "pdfjs-dist": "^4.0.379",
+    "pizzip": "^3.2.0",
+    "pptxgenjs": "^4.0.1",
+    "tesseract.js": "^5.1.1"
+  }
+}
