@@ -1026,8 +1026,7 @@
                 <img src="${matched.dataUrl}" alt="상권 PDF Page ${matched.pageNum}">
                 <div class="meta">
                   <span class="lbl">상권 PDF Page ${matched.pageNum} 자동 매칭</span>
-                  <a class="dl-btn" href="${matched.dataUrl}" download="${boxTitle.replace(/[\/\\:*?"<>|]/g, '_')}.png">PNG 저장</a>
-                  <span style="color:#737373;">PPT에 이 이미지를 박스 위치에 삽입하세요</span>
+                  <span style="color:#737373;">↑ 상단 미리보기 섹션에서 [PNG 저장] 후 PPT 박스 위치에 삽입</span>
                 </div>`;
               imgDiv.querySelector('img').addEventListener('click', () => openPdfModal(matched.dataUrl));
             } else {
