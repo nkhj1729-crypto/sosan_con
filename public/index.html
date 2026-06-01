@@ -329,6 +329,22 @@
     .industry-btn:hover { border-color: #e65100; background: #fff3e0; }
     .industry-btn.active { background: #e65100; color: white; border-color: #e65100; font-weight: 600; }
 
+    /* 수치 직접 입력 패널 (행복드림센터 영업현황 분석) */
+    .manual-inputs { padding: 14px 20px; background: #eef6ff; border-bottom: 1px solid #b6dcff; }
+    .manual-inputs .label { font-size: 12px; font-weight: 700; color: #1e40af; margin-bottom: 4px; }
+    .manual-inputs .hint { font-size: 11px; color: #475569; margin-bottom: 10px; }
+    .manual-inputs-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
+    .manual-inputs .field { display: flex; flex-direction: column; }
+    .manual-inputs .field label { font-size: 11px; color: #475569; margin-bottom: 3px; font-weight: 600; }
+    .manual-inputs .field input { padding: 6px 8px; font-size: 12px; border: 1px solid #c7d6ea; border-radius: 5px; font-family: inherit; }
+    .manual-inputs .field input:focus { outline: none; border-color: #1e40af; }
+    .recalc-btn { padding: 8px 16px; background: #1e40af; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; }
+    .recalc-btn:hover { background: #1e3a8a; }
+    .recalc-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    @media (max-width: 720px) {
+      .manual-inputs-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
     .hidden { display: none !important; }
     .market-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; }
     .market-item { background: #f8fafd; padding: 8px 12px; border-radius: 6px; }
@@ -499,7 +515,7 @@
         sections.push({ title: '사업주 주요사항', slide: 'Page 2', content: a.사업주주요사항 || '' });
         sections.push({ title: '점포현황', slide: 'Page 2', content: a.점포현황 || '' });
         sections.push({ title: '영업현황', slide: 'Page 3', content: a.영업현황 || '', hasIndustrySelector: true, currentIndustry: a.자동선택업종 });
-        sections.push({ title: '영업현황 분석', slide: 'Page 3', content: a.영업현황분석 || '', expandKey: '영업현황분석' });
+        sections.push({ title: '영업현황 분석', slide: 'Page 3', content: a.영업현황분석 || '', expandKey: '영업현황분석', hasManualInputs: true });
         sections.push({ title: '세부 항목별 분석', slide: 'Page 4', content: a.세부항목분석 || '', expandKey: '세부항목분석' });
         sections.push({ title: '이슈 도출 및 과제 선정', slide: 'Page 5', content: a.이슈및과제 || '', expandKey: '이슈및과제' });
         sections.push({ title: '컨설팅 수행 내용', slide: 'Page 5', content: a.수행내용 || '', expandKey: '수행내용' });
@@ -627,6 +643,9 @@
         const industrySelector = sec.hasIndustrySelector
           ? `<div class="industry-selector" id="industry-selector-${sec.title}"></div>`
           : '';
+        const manualInputs = sec.hasManualInputs
+          ? `<div class="manual-inputs" id="manual-inputs-${sec.title}"></div>`
+          : '';
         div.innerHTML = `
           <div class="section-header">
             <h3>${sec.title} <span class="slide-num">${sec.slide}</span></h3>
@@ -636,6 +655,7 @@
             </div>
           </div>
           ${industrySelector}
+          ${manualInputs}
           <div class="section-body">
             <pre id="content-${sec.title}">${escapeHtml(sec.content)}</pre>
           </div>`;
@@ -643,6 +663,9 @@
 
         if (sec.hasIndustrySelector) {
           renderIndustrySelector(sec.title, sec.currentIndustry);
+        }
+        if (sec.hasManualInputs) {
+          renderManualInputs(sec.title);
         }
       });
     }
@@ -674,6 +697,78 @@
         container.innerHTML = html;
       } catch (err) {
         console.error('Failed to load industries:', err);
+      }
+    }
+
+    function renderManualInputs(sectionTitle) {
+      const container = document.getElementById('manual-inputs-' + sectionTitle);
+      if (!container) return;
+      const d = window._parsedData || {};
+      const s = d.sinchungseo || {};
+      const r = d.sangkwon || {};
+      const fields = [
+        { key: '월매출액', label: '월매출액 (만원)', value: s.월매출액 || '' },
+        { key: '월순이익', label: '월순이익 (만원)', value: s.월순이익 || '' },
+        { key: '월세', label: '월 임차료 (만원)', value: s.월세 || '' },
+        { key: '종업원수', label: '종업원 수 (명)', value: s.종업원수 || '' },
+        { key: '경력', label: '경력 (년)', value: s.경력 || '' },
+        { key: '선택영역_월평균매출', label: '지역평균 매출 (만원)', value: r.선택영역_월평균매출 || '' },
+        { key: '배후지_월평균매출', label: '배후지 평균 매출 (만원)', value: r.배후지_월평균매출 || '' },
+        { key: '선택영역_매출증감', label: '매출 증감률 (%)', value: r.선택영역_매출증감 || '' },
+      ];
+      let html = '<div class="label">수치 직접 입력</div>';
+      html += '<div class="hint">PDF에서 인식되지 않은 값은 직접 입력 후 "재계산"을 눌러 영업현황·영업현황 분석을 다시 정리하세요.</div>';
+      html += '<div class="manual-inputs-grid">';
+      fields.forEach(f => {
+        html += `<div class="field"><label>${f.label}</label><input type="text" data-key="${f.key}" id="mi-${sectionTitle}-${f.key}" value="${escapeAttr(f.value)}"></div>`;
+      });
+      html += '</div>';
+      html += `<button class="recalc-btn" onclick="recalcHappyDream('${sectionTitle}')">재계산</button>`;
+      container.innerHTML = html;
+    }
+
+    function escapeAttr(v) {
+      return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    }
+
+    async function recalcHappyDream(sectionTitle) {
+      const container = document.getElementById('manual-inputs-' + sectionTitle);
+      const btn = container.querySelector('.recalc-btn');
+      const inputs = container.querySelectorAll('input[data-key]');
+      const overrides = {};
+      inputs.forEach(inp => { overrides[inp.dataset.key] = inp.value.trim(); });
+
+      // 현재 선택된 업종 (영업현황 섹션의 industry-selector에서)
+      const industryActive = document.querySelector('#industry-selector-영업현황 .industry-btn.active');
+      const industryKey = industryActive ? industryActive.dataset.key : (window._parsedData && window._parsedData.analysis && window._parsedData.analysis.자동선택업종);
+
+      btn.disabled = true; btn.textContent = '재계산 중...';
+      try {
+        const d = window._parsedData || {};
+        const res = await fetch('/api/recalc-happydream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sin: d.sinchungseo || {}, sang: d.sangkwon || {}, industryKey, overrides })
+        });
+        if (!res.ok) throw new Error('재계산 실패: ' + res.status);
+        const result = await res.json();
+
+        // 영업현황과 영업현황 분석 텍스트 갱신
+        const opPre = document.getElementById('content-영업현황');
+        if (opPre && result.영업현황) opPre.textContent = result.영업현황;
+        const anPre = document.getElementById('content-' + sectionTitle);
+        if (anPre && result.영업현황분석) anPre.textContent = result.영업현황분석;
+
+        // 입력값을 누적 데이터에 반영 (이후 분량 추가 등에서 사용)
+        if (result.sin) window._parsedData.sinchungseo = result.sin;
+        if (result.sang) window._parsedData.sang = result.sang;
+
+        btn.textContent = '재계산 완료';
+        setTimeout(() => { btn.textContent = '재계산'; btn.disabled = false; }, 1500);
+      } catch (err) {
+        console.error(err);
+        alert(err.message);
+        btn.textContent = '재계산'; btn.disabled = false;
       }
     }
 

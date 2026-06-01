@@ -4,7 +4,7 @@ const fs = require('fs');
 const PizZip = require('pizzip');
 const multer = require('multer');
 const { parsePDF, parsePDFWithOCR, extract신청서, extract행복드림신청서, extract상권리포트 } = require('./pdf-parser');
-const { analyze, analyzeHappyDream, expandSection, calcOperating, industryTypes } = require('./analyzer');
+const { analyze, analyzeHappyDream, expandSection, calcOperating, calcOperatingAnalysis, industryTypes } = require('./analyzer');
 
 const app = express();
 app.use(express.json({ limit: '50mb' }));
@@ -77,6 +77,28 @@ app.post('/api/recalc-operating', express.json(), (req, res) => {
     const { sin, industryKey } = req.body;
     const content = calcOperating(sin || {}, industryKey);
     res.json({ content });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 행복드림센터 - 수동 입력값으로 영업현황 + 영업현황분석 재계산
+app.post('/api/recalc-happydream', express.json(), (req, res) => {
+  try {
+    const { sin = {}, sang = {}, industryKey, overrides = {} } = req.body || {};
+    const mergedSin = { ...sin };
+    const mergedSang = { ...sang };
+    ['월매출액', '월순이익', '월세', '종업원수', '경력'].forEach(k => {
+      if (overrides[k] !== undefined && overrides[k] !== '') mergedSin[k] = overrides[k];
+    });
+    ['선택영역_월평균매출', '배후지_월평균매출', '선택영역_매출증감'].forEach(k => {
+      if (overrides[k] !== undefined && overrides[k] !== '') mergedSang[k] = overrides[k];
+    });
+
+    const 영업현황 = calcOperating(mergedSin, industryKey);
+    const 영업현황분석 = calcOperatingAnalysis(mergedSin, mergedSang);
+    res.json({ 영업현황, 영업현황분석, sin: mergedSin, sang: mergedSang });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
