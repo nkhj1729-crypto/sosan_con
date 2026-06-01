@@ -54,6 +54,7 @@ app.post('/api/parse', upload.fields([
     if (req.files.sangkwon && req.files.sangkwon[0]) {
       const pages = await parsePDF(req.files.sangkwon[0].path);
       result.sangkwon = extract상권리포트(pages);
+      result.sangkwonPageText = pages; // 페이지별 원본 텍스트 (이미지 매칭용)
       fs.unlinkSync(req.files.sangkwon[0].path);
     }
 

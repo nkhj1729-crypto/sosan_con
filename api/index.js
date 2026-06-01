@@ -67,6 +67,7 @@ app.post('/api/parse', upload.fields([
       writes.push(tmpPath);
       const pages = await parsePDF(tmpPath);
       result.sangkwon = extract상권리포트(pages);
+      result.sangkwonPageText = pages;
     }
 
     // cleanup

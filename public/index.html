@@ -373,6 +373,15 @@
     @media (max-width: 720px) {
       .pdf-pages-grid { grid-template-columns: repeat(2, 1fr); }
     }
+
+    /* 박스 아래 인라인 매칭 이미지 */
+    .inline-pdf-img { background: #fafafa; border: 1px solid #ececec; border-radius: 8px; padding: 10px; margin: 8px 0 16px; display: flex; gap: 12px; align-items: flex-start; }
+    .inline-pdf-img img { max-width: 280px; max-height: 200px; border: 1px solid #d4d4d4; border-radius: 4px; cursor: zoom-in; }
+    .inline-pdf-img .meta { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #525252; }
+    .inline-pdf-img .meta .lbl { font-weight: 600; color: #0a0a0a; }
+    .inline-pdf-img .meta .dl-btn { display: inline-block; padding: 5px 10px; border: 1px solid #0a0a0a; background: #ffffff; border-radius: 5px; cursor: pointer; font-family: inherit; color: #0a0a0a; text-decoration: none; width: fit-content; }
+    .inline-pdf-img .meta .dl-btn:hover { background: #0a0a0a; color: #ffffff; }
+    .inline-pdf-img.unmatched { color: #92400e; background: #fffbeb; border-color: #fde68a; font-size: 12px; }
     @media (max-width: 720px) {
       .manual-inputs-grid { grid-template-columns: repeat(2, 1fr); }
     }
@@ -672,9 +681,11 @@
 
       window._parsedData = data;
 
-      // 행복드림센터: 상권 PDF 페이지를 이미지로 미리보기 (사용자가 다운로드해 PPT에 삽입)
+      // 행복드림센터: 상권 PDF 페이지를 이미지로 미리보기 + 박스 자동 매칭 삽입
       if (selectedTemplate === '행복드림센터' && uploadedFiles.sangkwon) {
-        renderSangkwonPagesPreview(uploadedFiles.sangkwon, container);
+        renderSangkwonPagesPreview(uploadedFiles.sangkwon, container).then(() => {
+          linkImagesToBoxes(data.sangkwonPageText || []);
+        });
       }
 
       sections.forEach(sec => {
@@ -837,8 +848,17 @@
     }
 
     function copySection(btn, title) {
-      const pre = document.getElementById('content-' + title);
-      navigator.clipboard.writeText(pre.textContent).then(() => {
+      // 박스 분할된 섹션은 여러 pre가 존재할 수 있어 모두 합쳐 복사
+      const firstPre = document.getElementById('content-' + title);
+      let text;
+      if (firstPre) {
+        const body = firstPre.parentElement;
+        const allPres = body.querySelectorAll('pre');
+        text = allPres.length > 1 ? Array.from(allPres).map(p => p.textContent).join('') : firstPre.textContent;
+      } else {
+        text = '';
+      }
+      navigator.clipboard.writeText(text).then(() => {
         btn.textContent = '복사됨!';
         btn.classList.add('copied');
         setTimeout(() => { btn.textContent = '복사'; btn.classList.remove('copied'); }, 2000);
@@ -907,6 +927,7 @@
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         const grid = document.getElementById('pdf-pages-grid');
         grid.innerHTML = '';
+        window._sangkwonPages = []; // {pageNum, dataUrl}
 
         for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
           const page = await pdf.getPage(pageNum);
@@ -918,6 +939,7 @@
           await page.render({ canvasContext: ctx, viewport }).promise;
 
           const dataUrl = canvas.toDataURL('image/png');
+          window._sangkwonPages.push({ pageNum, dataUrl });
           const card = document.createElement('div');
           card.className = 'pdf-page-card';
           card.innerHTML = `
@@ -934,6 +956,98 @@
         const grid = document.getElementById('pdf-pages-grid');
         if (grid) grid.innerHTML = `<div style="grid-column: 1 / -1; color: #dc2626;">PDF 미리보기 실패: ${err.message}</div>`;
       }
+    }
+
+    // 각 [이미지 삽입] 박스 아래에 매칭된 상권 PDF 페이지 이미지를 인라인 삽입
+    function linkImagesToBoxes(pageTexts) {
+      const pages = window._sangkwonPages || [];
+      if (pages.length === 0) return;
+
+      // 박스 제목 → 페이지 매칭 규칙 (키워드 우선순위 순)
+      const rules = [
+        { match: /사업장 위치 지도|지도/, keywords: ['지도', 'map'], textMin: 0, textMax: 200 },
+        { match: /월별.*유동인구|유동인구 추이/, keywords: ['유동인구', '월별'] },
+        { match: /주거인구/, keywords: ['주거인구'] },
+        { match: /직장인구/, keywords: ['직장인구'] },
+        { match: /월간 검색량|검색량.*PC|PC.*Mobile/, keywords: ['월간 검색량', 'PC', 'Mobile'] },
+        { match: /예상 검색량/, keywords: ['예상 검색', '예상되는 검색'] },
+        { match: /연령별 검색량|연령별 검색/, keywords: ['연령별', '검색'] },
+        { match: /성별 검색|이슈성|정보성/, keywords: ['성별', '이슈성', '정보성'] },
+        // 매칭 안 되는 박스 (사람 직접 캡쳐): 네이버 플레이스, 쿠폰, 홍보물 등
+      ];
+
+      function findBestPage(boxTitle) {
+        const rule = rules.find(r => r.match.test(boxTitle));
+        if (!rule) return null;
+        // textMin/Max로 좁힐 수 있는 경우 (지도처럼 텍스트 적은 페이지)
+        let candidates = pages.map((p, i) => ({ ...p, text: pageTexts[i] || '' }));
+        if (rule.textMin !== undefined || rule.textMax !== undefined) {
+          candidates = candidates.filter(c => {
+            const len = c.text.length;
+            if (rule.textMin !== undefined && len < rule.textMin) return false;
+            if (rule.textMax !== undefined && len > rule.textMax) return false;
+            return true;
+          });
+        }
+        // 키워드 매칭 점수 계산
+        let bestPage = null, bestScore = 0;
+        candidates.forEach(c => {
+          const score = rule.keywords.filter(kw => c.text.includes(kw)).length;
+          if (score > bestScore) { bestScore = score; bestPage = c; }
+        });
+        return bestScore > 0 ? bestPage : (rule.textMax !== undefined && candidates.length > 0 ? candidates[0] : null);
+      }
+
+      // 각 수행내용 섹션의 pre를 박스 단위로 분할하여 이미지 인라인 삽입
+      ['수행내용 ② 문제점 진단 및 상권 분석', '수행내용 ③ 목표 설정 및 운영 방안', '수행내용 ④ 고객 검색 패턴 및 운영전략', '수행내용 ⑤ 홍보/마케팅'].forEach(title => {
+        const pre = document.getElementById('content-' + title);
+        if (!pre) return;
+        const sectionBody = pre.parentElement;
+        const raw = pre.textContent;
+        // 박스 단위 분할: ┌─...┘\n
+        const boxRegex = /(┌─[─]+┐\n│ \[이미지 삽입\] [^\n]+\n(?:│[^\n]*\n)*└─[─]+┘)/g;
+        const parts = raw.split(boxRegex);
+        sectionBody.innerHTML = '';
+        parts.forEach(part => {
+          if (!part) return;
+          if (boxRegex.test(part) || /^┌─/.test(part)) {
+            // 박스 — pre로 그대로 출력 후 매칭 이미지 추가
+            const boxPre = document.createElement('pre');
+            boxPre.textContent = part;
+            sectionBody.appendChild(boxPre);
+
+            const titleMatch = part.match(/\[이미지 삽입\] ([^\n]+)/);
+            const boxTitle = titleMatch ? titleMatch[1].trim() : '';
+            const matched = findBestPage(boxTitle);
+            const imgDiv = document.createElement('div');
+            if (matched) {
+              imgDiv.className = 'inline-pdf-img';
+              imgDiv.innerHTML = `
+                <img src="${matched.dataUrl}" alt="상권 PDF Page ${matched.pageNum}">
+                <div class="meta">
+                  <span class="lbl">상권 PDF Page ${matched.pageNum} 자동 매칭</span>
+                  <a class="dl-btn" href="${matched.dataUrl}" download="${boxTitle.replace(/[\/\\:*?"<>|]/g, '_')}.png">PNG 저장</a>
+                  <span style="color:#737373;">PPT에 이 이미지를 박스 위치에 삽입하세요</span>
+                </div>`;
+              imgDiv.querySelector('img').addEventListener('click', () => openPdfModal(matched.dataUrl));
+            } else {
+              imgDiv.className = 'inline-pdf-img unmatched';
+              imgDiv.textContent = `※ 자동 매칭된 PDF 페이지 없음 — 위의 안내에 따라 직접 캡쳐해 사용하세요`;
+            }
+            sectionBody.appendChild(imgDiv);
+          } else {
+            // 일반 텍스트
+            const txtPre = document.createElement('pre');
+            txtPre.textContent = part;
+            sectionBody.appendChild(txtPre);
+          }
+          // 다음 부분 처리를 위해 regex lastIndex 리셋
+          boxRegex.lastIndex = 0;
+        });
+        // 새로 만들어진 첫 pre에 원본 id 부여 (복사 기능 호환)
+        const firstPre = sectionBody.querySelector('pre');
+        if (firstPre) firstPre.id = 'content-' + title;
+      });
     }
 
     function openPdfModal(src) {
