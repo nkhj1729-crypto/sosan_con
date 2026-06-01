@@ -1480,11 +1480,18 @@ function analyzeHappyDream(sin, sang) {
     지역, 지역평균, 배후지평균, 경쟁수, 매출증감, 매출양호, 요청, 추세
   });
 
-  // ─── Page 5: 컨설팅 수행 내용 (다층 구조) ───
-  r.수행내용 = buildExecutionContent({
+  // ─── Page 5+: 컨설팅 수행 내용 (6개 하위 섹션으로 분리) ───
+  const exec = buildExecutionContent({
     업체명, 업종짧게, 지역, 주소, 경력, 종업원, 월매출, 월순이익, 월세, 순이익률,
     매출양호, 지역평균, 배후지평균, 경쟁수, 배후지경쟁, 매출증감, 추세, 요청, sin, sang
   });
+  r.수행_업체현황 = exec.업체현황;
+  r.수행_상권분석 = exec.상권분석;
+  r.수행_운영방안 = exec.운영방안;
+  r.수행_고객검색 = exec.고객검색;
+  r.수행_홍보마케팅 = exec.홍보마케팅;
+  r.수행_기대효과 = exec.기대효과;
+  r.수행내용 = [exec.업체현황, exec.상권분석, exec.운영방안, exec.고객검색, exec.홍보마케팅, exec.기대효과].join('\n\n'); // 전체 통합본 (하위 호환)
 
   // ─── 상권 요약 (참고용) ───
   r.상권요약 = genMarketSummary(sang, 경쟁수, 배후지경쟁, 지역, 추세);
@@ -1785,13 +1792,18 @@ function imgBox(title, desc, source) {
   ].join('\n');
 }
 
-// 컨설팅 수행 내용 - 12개 하위 섹션 다층 구조 (예시 보고서 수준)
+// 컨설팅 수행 내용 - 6개 분리 가능한 하위 섹션 반환 (각각 복사/분량추가 가능)
 function buildExecutionContent(d) {
-  const lines = [];
+  const sections = { 업체현황: [], 상권분석: [], 운영방안: [], 고객검색: [], 홍보마케팅: [], 기대효과: [] };
+  let cur = '업체현황';
+  const push = (s) => sections[cur].push(s);
+  const goTo = (name) => { cur = name; };
+  const lines = { push }; // 기존 lines.push() 호출 호환을 위한 alias
   const 창업년도 = (d.sin && d.sin.창업일자 || '').match(/^(\d{4})/);
   const 매출문구 = d.월매출 > 0 ? `월 평균 매출은 약 ${d.월매출}만원 수준` : '월 매출 정보 미확인';
   const 추세text = d.추세 || '';
 
+  // ─── [섹션 1] 업체현황·경영애로사항·요청사항 ───
   // 1. 업체 현황
   lines.push('1. 업체 현황');
   lines.push(`- 해당 업체는 ${d.주소 ? d.주소 + '에 위치한' : d.지역 + ' 소재'} ${d.업종짧게} 업종으로${창업년도 ? `, ${창업년도[1]}년 개업 후 현재까지 운영 중인` : ''} 소상공인 사업장임.`);
@@ -1820,6 +1832,8 @@ function buildExecutionContent(d) {
   }
   lines.push('');
 
+  // ─── [섹션 2] 문제점 진단 + 상권/매출/인구 분석 + 차트들 ───
+  goTo('상권분석');
   // 4. 문제점 진단
   lines.push('1. 문제점 진단');
   lines.push(`- 현재 사업장이 위치한 지역은 ${d.경쟁수 < 20 ? '경쟁 환경이 적정' : '동종 업소 경쟁이 다소 높은'} 상권으로, 차별화된 운영 전략이 필요한 상태임.`);
@@ -1873,6 +1887,8 @@ function buildExecutionContent(d) {
   ));
   lines.push('');
 
+  // ─── [섹션 3] 목표 설정 + 안정적 운영 방안 + 플레이스 이미지 ───
+  goTo('운영방안');
   // 6. 목표 설정
   lines.push('1. 목표 설정');
   lines.push(`- 신규 고객 유입 확대 및 ${d.매출양호 ? '추가 매출 성장' : '매출 회복'}을 목표로 SNS/네이버 플레이스 등 온라인 홍보 강화`);
@@ -1919,6 +1935,8 @@ function buildExecutionContent(d) {
   ));
   lines.push('');
 
+  // ─── [섹션 4] 고객 검색 패턴 + 검색량 차트 + 운영전략 3분류 ───
+  goTo('고객검색');
   // 8. 고객 검색 패턴 분석
   lines.push('1. 고객 검색 패턴 분석 및 특징');
   lines.push(`- ${d.업종짧게} 업종 특성상 고객들은 인터넷 검색 및 주변 추천을 통해 정보를 확인하는 경우가 많음`);
@@ -1972,6 +1990,8 @@ function buildExecutionContent(d) {
   lines.push(`    - 메뉴 구성 개선 및 추가 상품 도입으로 객단가 상승 및 매출 증가 기반 마련`);
   lines.push('');
 
+  // ─── [섹션 5] 홍보/마케팅 + 홍보물 이미지 ───
+  goTo('홍보마케팅');
   // 10. 홍보/마케팅
   lines.push('3. 홍보/마케팅');
   lines.push(`- 네이버 플레이스에 메뉴, 가격, 매장 사진, 이용 후기 등을 정기적으로 업데이트하여 신뢰도 향상 및 신규 고객 유입 유도`);
@@ -1993,6 +2013,8 @@ function buildExecutionContent(d) {
   ));
   lines.push('');
 
+  // ─── [섹션 6] 정성적 효과 + 기대효과 ───
+  goTo('기대효과');
   // 11. 정성적 효과
   lines.push('1. 정성적 효과');
   lines.push(`- 상권 분석 데이터 기반의 운영 방향 명확화 및 체계적 메뉴/서비스 전략 정립 가능`);
@@ -2014,7 +2036,9 @@ function buildExecutionContent(d) {
     lines.push(`▶ 종합적으로 현재 매출(${d.월매출}만원) 대비 3개월 +5%, 6개월 +10%, 1년 +15% 매출 성장(목표: ${Math.round(d.월매출 * 1.15)}만원) 가능 전망`);
   }
 
-  return lines.join('\n');
+  const out = {};
+  Object.keys(sections).forEach(k => { out[k] = sections[k].join('\n'); });
+  return out;
 }
 
 module.exports = { analyze, analyzeHappyDream, expandSection, calcOperating, calcOperatingAnalysis, detectIndustry, industryTypes };

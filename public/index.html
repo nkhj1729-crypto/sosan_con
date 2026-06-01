@@ -518,7 +518,13 @@
         sections.push({ title: '영업현황 분석', slide: 'Page 3', content: a.영업현황분석 || '', expandKey: '영업현황분석', hasManualInputs: true });
         sections.push({ title: '세부 항목별 분석', slide: 'Page 4', content: a.세부항목분석 || '', expandKey: '세부항목분석' });
         sections.push({ title: '이슈 도출 및 과제 선정', slide: 'Page 5', content: a.이슈및과제 || '', expandKey: '이슈및과제' });
-        sections.push({ title: '컨설팅 수행 내용', slide: 'Page 5', content: a.수행내용 || '', expandKey: '수행내용' });
+        // 컨설팅 수행 내용: 6개 하위 섹션으로 분리
+        sections.push({ title: '수행내용 ① 업체현황·경영애로사항', slide: 'Page 5', content: a.수행_업체현황 || '', expandKey: '수행내용' });
+        sections.push({ title: '수행내용 ② 문제점 진단 및 상권 분석', slide: 'Page 6-7', content: a.수행_상권분석 || '', expandKey: '수행내용' });
+        sections.push({ title: '수행내용 ③ 목표 설정 및 운영 방안', slide: 'Page 8-9', content: a.수행_운영방안 || '', expandKey: '수행내용' });
+        sections.push({ title: '수행내용 ④ 고객 검색 패턴 및 운영전략', slide: 'Page 10-11', content: a.수행_고객검색 || '', expandKey: '수행내용' });
+        sections.push({ title: '수행내용 ⑤ 홍보/마케팅', slide: 'Page 12', content: a.수행_홍보마케팅 || '', expandKey: '수행내용' });
+        sections.push({ title: '수행내용 ⑥ 정성적 효과 및 기대효과', slide: 'Page 13', content: a.수행_기대효과 || '', expandKey: '수행내용' });
 
         // Render and return early
         renderSections(sections, data);
