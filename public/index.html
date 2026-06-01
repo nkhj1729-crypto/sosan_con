@@ -374,6 +374,24 @@
       .pdf-pages-grid { grid-template-columns: repeat(2, 1fr); }
     }
 
+    /* 정보 수정 패널 (재분석) */
+    .info-edit-card { background: #fff8e1; border: 1px solid #ffd54f; border-radius: 12px; padding: 20px 24px; margin-bottom: 20px; }
+    .info-edit-card h3 { font-size: 14px; font-weight: 700; color: #b45309; margin-bottom: 6px; }
+    .info-edit-card .hint { font-size: 12px; color: #78350f; margin-bottom: 14px; }
+    .info-edit-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+    .info-edit-grid .field { display: flex; flex-direction: column; }
+    .info-edit-grid .field label { font-size: 11px; color: #78350f; margin-bottom: 3px; font-weight: 600; }
+    .info-edit-grid .field input, .info-edit-grid .field select { padding: 7px 9px; font-size: 12px; border: 1px solid #d4a015; border-radius: 5px; font-family: inherit; background: #fff; }
+    .info-edit-grid .field.wide { grid-column: span 3; }
+    .info-edit-grid .field textarea { padding: 7px 9px; font-size: 12px; border: 1px solid #d4a015; border-radius: 5px; font-family: inherit; min-height: 56px; resize: vertical; background: #fff; }
+    .info-reanalyze-btn { padding: 9px 20px; background: #b45309; color: #fff; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+    .info-reanalyze-btn:hover { background: #92400e; }
+    .info-reanalyze-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    @media (max-width: 720px) {
+      .info-edit-grid { grid-template-columns: repeat(2, 1fr); }
+      .info-edit-grid .field.wide { grid-column: span 2; }
+    }
+
     /* 박스 아래 인라인 매칭 이미지 */
     .inline-pdf-img { background: #fafafa; border: 1px solid #ececec; border-radius: 8px; padding: 10px; margin: 8px 0 16px; display: flex; gap: 12px; align-items: flex-start; }
     .inline-pdf-img img { max-width: 280px; max-height: 200px; border: 1px solid #d4d4d4; border-radius: 4px; cursor: zoom-in; }
@@ -681,11 +699,14 @@
 
       window._parsedData = data;
 
-      // 행복드림센터: 상권 PDF 페이지를 이미지로 미리보기 + 박스 자동 매칭 삽입
-      if (selectedTemplate === '행복드림센터' && uploadedFiles.sangkwon) {
-        renderSangkwonPagesPreview(uploadedFiles.sangkwon, container).then(() => {
-          linkImagesToBoxes(data.sangkwonPageText || []);
-        });
+      // 행복드림센터: 정보 수정 패널 추가 + 상권 PDF 페이지 미리보기 + 박스 자동 매칭 삽입
+      if (selectedTemplate === '행복드림센터') {
+        renderInfoEditPanel(data, container);
+        if (uploadedFiles.sangkwon) {
+          renderSangkwonPagesPreview(uploadedFiles.sangkwon, container).then(() => {
+            linkImagesToBoxes(data.sangkwonPageText || []);
+          });
+        }
       }
 
       sections.forEach(sec => {
@@ -903,6 +924,60 @@
         btn.classList.remove('loading');
         console.error(err);
         alert('분량 추가 실패: ' + err.message);
+      }
+    }
+
+    // 분석 정보 확인·수정 패널 (업종 오인식 등 잘못된 정보 보정용)
+    function renderInfoEditPanel(data, container) {
+      const s = data.sinchungseo || {};
+      const card = document.createElement('div');
+      card.className = 'info-edit-card';
+      card.innerHTML = `
+        <h3>⚠️ 분석 정보 확인 (잘못된 경우 수정 후 재분석)</h3>
+        <p class="hint">PDF에서 추출된 정보입니다. 업종이 잘못 인식되면 보고서 내용이 부정확해집니다. 아래에서 수정 후 [재분석] 버튼을 눌러주세요.</p>
+        <div class="info-edit-grid">
+          <div class="field wide"><label>업종 (가장 중요)</label><input type="text" id="ie-업종" value="${escapeAttr(s.업종 || '')}" placeholder="예: 수제청 제조판매, 미용실, 카페, 태권도장 등"></div>
+          <div class="field"><label>업체명</label><input type="text" id="ie-업체명" value="${escapeAttr(s.업체명 || '')}"></div>
+          <div class="field"><label>대표자명</label><input type="text" id="ie-고객명" value="${escapeAttr(s.고객명 || '')}"></div>
+          <div class="field"><label>경력 (년)</label><input type="text" id="ie-경력" value="${escapeAttr(s.경력 || '')}"></div>
+          <div class="field"><label>월매출액 (만원)</label><input type="text" id="ie-월매출액" value="${escapeAttr(s.월매출액 || '')}"></div>
+          <div class="field"><label>월순이익 (만원)</label><input type="text" id="ie-월순이익" value="${escapeAttr(s.월순이익 || '')}"></div>
+          <div class="field"><label>월세 (만원)</label><input type="text" id="ie-월세" value="${escapeAttr(s.월세 || '')}"></div>
+          <div class="field"><label>종업원 수 (명)</label><input type="text" id="ie-종업원수" value="${escapeAttr(s.종업원수 || '')}"></div>
+          <div class="field"><label>창업일자</label><input type="text" id="ie-창업일자" value="${escapeAttr(s.창업일자 || '')}" placeholder="2020.01.15"></div>
+          <div class="field wide"><label>사업장 주소</label><input type="text" id="ie-사업장주소" value="${escapeAttr(s.사업장주소 || '')}"></div>
+          <div class="field wide"><label>요청사항</label><textarea id="ie-요청사항">${escapeHtml(s.요청사항 || '')}</textarea></div>
+        </div>
+        <button class="info-reanalyze-btn" onclick="reanalyzeFull()">재분석 (정보 수정 적용)</button>`;
+      container.insertBefore(card, container.firstChild.nextSibling);
+    }
+
+    function escapeAttr(v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/"/g, '&quot;'); }
+
+    async function reanalyzeFull() {
+      const btn = document.querySelector('.info-reanalyze-btn');
+      btn.disabled = true; btn.textContent = '재분석 중...';
+      try {
+        const overrides = {};
+        ['업종', '업체명', '고객명', '경력', '월매출액', '월순이익', '월세', '종업원수', '창업일자', '사업장주소', '요청사항'].forEach(k => {
+          const el = document.getElementById('ie-' + k);
+          if (el) overrides[k] = el.value.trim();
+        });
+        const d = window._parsedData || {};
+        const res = await fetch('/api/reanalyze-happydream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sin: d.sinchungseo || {}, sang: d.sangkwon || {}, overrides })
+        });
+        if (!res.ok) throw new Error('재분석 실패: ' + res.status);
+        const result = await res.json();
+        const newData = { ...d, sinchungseo: result.sin, analysis: result.analysis };
+        renderResults(newData);
+        btn.textContent = '재분석 완료';
+        setTimeout(() => { btn.textContent = '재분석 (정보 수정 적용)'; btn.disabled = false; }, 1500);
+      } catch (err) {
+        console.error(err); alert(err.message);
+        btn.textContent = '재분석 (정보 수정 적용)'; btn.disabled = false;
       }
     }
 

@@ -1496,6 +1496,11 @@ function analyzeHappyDream(sin, sang) {
   // ─── 상권 요약 (참고용) ───
   r.상권요약 = genMarketSummary(sang, 경쟁수, 배후지경쟁, 지역, 추세);
 
+  // ─── 업종별 용어 후처리 (시술→메뉴/판매/수업 등) ───
+  Object.keys(r).forEach(k => {
+    if (typeof r[k] === 'string') r[k] = postProcessText(r[k], 업종);
+  });
+
   return r;
 }
 
@@ -1568,6 +1573,55 @@ function buildIssueTaskPairs(d) {
     if (idx < pairs.length - 1) lines.push('');
   });
   return lines.join('\n');
+}
+
+// 업종별 용어 후처리 - "시술" 등 미용업 전제 단어를 업종에 맞게 치환
+function postProcessText(text, 업종) {
+  if (!text) return text;
+  // 미용/네일/피부 등은 시술 그대로 유지
+  if (/미용|헤어|이용|네일|피부|마사지|왁싱|반영구|타투|에스테틱/.test(업종 || '')) return text;
+
+  let map;
+  if (/카페|커피|음식|식당|디저트|베이커리|제과|제빵|음료|주점|호프|치킨|분식|레스토랑/.test(업종 || '')) {
+    map = {
+      '시술이력': '주문이력', '시술 내용': '메뉴 내용', '시술 시간': '서비스 시간',
+      '시술 결과': '제품 만족도', '시술/서비스': '메뉴/서비스', '시술 후': '제공 후',
+      '시술과 매장': '서비스와 매장', '시술과 상담': '제공과 상담', '시술과 마케팅': '운영과 마케팅',
+      '시술 시간 대비 마케팅': '운영 시간 대비 마케팅', '보충 시술': '추가 주문',
+      '스타일링': '메뉴 제안', '스타일': '메뉴', '시술': '메뉴 제공'
+    };
+  } else if (/수제|제조|판매|소매|도매|식품|가공|제품|편의점|마트|상점|샵|스토어|store/i.test(업종 || '')) {
+    map = {
+      '시술이력': '구매이력', '시술 내용': '구매 내역', '시술 시간': '판매 시간',
+      '시술 결과': '제품 만족도', '시술/서비스': '제품/서비스', '시술 후': '구매 후',
+      '시술과 매장': '판매와 매장', '시술과 상담': '판매와 상담', '시술과 마케팅': '판매와 마케팅',
+      '시술 시간 대비 마케팅': '판매 시간 대비 마케팅', '보충 시술': '재구매',
+      '스타일링': '제품 제안', '스타일': '취향', '시술': '제품 판매'
+    };
+  } else if (/학원|교육|체육|태권도|어학|학습|코딩|음악|미술|무용|학교/.test(업종 || '')) {
+    map = {
+      '시술이력': '수강 이력', '시술 내용': '수업 내용', '시술 시간': '수업 시간',
+      '시술 결과': '학습 성과', '시술/서비스': '수업/프로그램', '시술 후': '수업 후',
+      '시술과 매장': '수업과 도장', '시술과 상담': '수업과 상담', '시술과 마케팅': '수업과 마케팅',
+      '시술 시간 대비 마케팅': '수업 시간 대비 마케팅', '보충 시술': '보충 수업',
+      '스타일링': '수업 안내', '스타일': '학습 스타일', '시술': '수업'
+    };
+  } else {
+    // 일반 서비스/기타
+    map = {
+      '시술이력': '서비스 이력', '시술 내용': '서비스 내용', '시술 시간': '서비스 시간',
+      '시술 결과': '서비스 결과', '시술/서비스': '서비스', '시술 후': '서비스 후',
+      '시술과 매장': '서비스와 매장', '시술과 상담': '서비스와 상담', '시술과 마케팅': '서비스와 마케팅',
+      '시술 시간 대비 마케팅': '서비스 시간 대비 마케팅', '보충 시술': '추가 서비스',
+      '스타일링': '서비스 제안', '스타일': '선호도', '시술': '서비스'
+    };
+  }
+
+  // 긴 키부터 먼저 치환 (부분 매칭 방지)
+  Object.keys(map).sort((a, b) => b.length - a.length).forEach(k => {
+    text = text.split(k).join(map[k]);
+  });
+  return text;
 }
 
 // 영업현황 분석 텍스트 생성 (sin/sang 수치 기반) - 5개 항목 + 종합 진단
@@ -2041,4 +2095,4 @@ function buildExecutionContent(d) {
   return out;
 }
 
-module.exports = { analyze, analyzeHappyDream, expandSection, calcOperating, calcOperatingAnalysis, detectIndustry, industryTypes };
+module.exports = { analyze, analyzeHappyDream, expandSection, calcOperating, calcOperatingAnalysis, detectIndustry, postProcessText, industryTypes };

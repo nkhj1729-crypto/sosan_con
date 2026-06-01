@@ -96,6 +96,20 @@ app.post('/api/recalc-operating', (req, res) => {
   }
 });
 
+app.post('/api/reanalyze-happydream', (req, res) => {
+  try {
+    const { sin = {}, sang = {}, overrides = {} } = req.body || {};
+    const mergedSin = { ...sin };
+    ['업종', '업체명', '고객명', '경력', '월매출액', '월순이익', '월세', '종업원수', '창업일자', '사업장주소', '요청사항'].forEach(k => {
+      if (overrides[k] !== undefined && overrides[k] !== '') mergedSin[k] = overrides[k];
+    });
+    const analysis = analyzeHappyDream(mergedSin, sang);
+    res.json({ analysis, sin: mergedSin });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/recalc-happydream', (req, res) => {
   try {
     const { sin = {}, sang = {}, industryKey, overrides = {} } = req.body || {};
