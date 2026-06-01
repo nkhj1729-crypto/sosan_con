@@ -51,7 +51,11 @@
       font-weight: 600;
       letter-spacing: -0.2px;
       color: #0a0a0a;
+      text-decoration: none;
+      cursor: pointer;
+      transition: opacity 0.15s ease;
     }
+    .brand:hover { opacity: 0.65; }
     .brand-mark {
       width: 22px;
       height: 22px;
@@ -369,10 +373,10 @@
 <body>
   <nav class="topbar">
     <div class="topbar-inner">
-      <div class="brand">
+      <a href="/" class="brand" title="홈으로">
         <div class="brand-mark"></div>
         <span>Consulting Report Studio</span>
-      </div>
+      </a>
       <div class="topbar-meta">소상공인 컨설팅 · v1.0</div>
     </div>
   </nav>
